@@ -1,0 +1,28 @@
+.DS_Store
+
+# Nextflow runtime artifacts
+.nextflow/
+.nextflow.log*
+work/
+
+# Local outputs and scratch runs
+results/
+null/
+
+# Python virtual environments and caches
+.venv/
+dashboard/.venv/
+__pycache__/
+*.pyc
+
+# Terraform local state and plans
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.zip
+terraform/*.plan
+
+# Local environment files
+.env
+.env.*

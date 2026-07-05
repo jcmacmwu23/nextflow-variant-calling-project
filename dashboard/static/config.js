@@ -1,0 +1,1 @@
+window.VARIANT_DASHBOARD_API_BASE_URL = "";

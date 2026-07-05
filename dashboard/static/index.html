@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Variant Pipeline Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/config.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">AWS-first monitoring</p>
+        <h1>Variant Pipeline Dashboard</h1>
+        <p class="lede">Live Batch, S3, and pipeline-stage status for the chr21 proof-of-concept deployment in Ohio.</p>
+        <div class="source-bar">
+          <label for="source-select">Execution Source</label>
+          <select id="source-select"></select>
+          <p id="source-note" class="source-note">Loading source details...</p>
+        </div>
+      </section>
+
+      <section class="grid top-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Overview</h2>
+            <span id="overall-status" class="pill">Loading</span>
+          </div>
+          <dl class="meta">
+            <div><dt>Region</dt><dd id="region">-</dd></div>
+            <div><dt>Bucket</dt><dd id="bucket">-</dd></div>
+            <div><dt>Latest Run</dt><dd id="latest-run-window">-</dd></div>
+            <div><dt>Updated</dt><dd id="updated">-</dd></div>
+          </dl>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Batch Queue</h2>
+            <span id="queue-status" class="pill">Loading</span>
+          </div>
+          <dl class="meta">
+            <div><dt>Name</dt><dd id="queue-name">-</dd></div>
+            <div><dt>State</dt><dd id="queue-state">-</dd></div>
+            <div><dt>Reason</dt><dd id="queue-reason">-</dd></div>
+          </dl>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Compute</h2>
+            <span id="compute-status" class="pill">Loading</span>
+          </div>
+          <dl class="meta">
+            <div><dt>Name</dt><dd id="compute-name">-</dd></div>
+            <div><dt>Desired vCPUs</dt><dd id="compute-vcpus">-</dd></div>
+            <div><dt>Instances</dt><dd id="compute-instance-types">-</dd></div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Pipeline Stages</h2>
+        </div>
+        <div id="stages" class="stages"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Chr21 Variant Map</h2>
+        </div>
+        <div class="variant-hero">
+          <article class="variant-summary">
+            <p class="variant-kicker">Latest VCF</p>
+            <h3 id="variant-count">Loading</h3>
+            <p id="variant-source" class="variant-note">Reading chr21 variant results...</p>
+            <p id="variant-artifact" class="variant-note">-</p>
+          </article>
+          <article class="variant-detail-card">
+            <p class="variant-kicker">Selected SNP</p>
+            <div id="variant-detail" class="variant-detail">
+              <strong>No SNP selected yet.</strong>
+              <span>Click a marker on the chr21 track or a row in the table.</span>
+            </div>
+          </article>
+        </div>
+        <div class="variant-track-panel">
+          <div class="variant-track-head">
+            <strong id="variant-track-label">chr21</strong>
+            <span id="variant-track-range">0 bp - 46.7 Mb</span>
+          </div>
+          <div class="variant-legend" aria-label="Chr21 variant map legend">
+            <span class="variant-legend-item">
+              <span class="variant-legend-swatch"></span>
+              SNP marker
+            </span>
+            <span class="variant-legend-item">
+              <span class="variant-legend-swatch selected"></span>
+              Selected SNP
+            </span>
+          </div>
+          <div id="variant-track" class="variant-track">
+            <div class="variant-track-empty">No chr21 SNPs available yet.</div>
+          </div>
+        </div>
+        <div class="variant-table-wrap">
+          <table class="variant-table">
+            <thead>
+              <tr>
+                <th>POS</th>
+                <th>REF</th>
+                <th>ALT</th>
+                <th>QUAL</th>
+                <th>FILTER</th>
+                <th>GT</th>
+              </tr>
+            </thead>
+            <tbody id="variant-table-body">
+              <tr><td colspan="6">Loading chr21 SNPs...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="grid bottom-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Latest Run</h2>
+          </div>
+          <div id="latest-run" class="list-state">Loading</div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Run History</h2>
+          </div>
+          <div id="run-history" class="list-state">Loading</div>
+        </article>
+      </section>
+
+      <section class="grid bottom-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Recent Failures</h2>
+          </div>
+          <div id="failures" class="list-state">Loading</div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h2>S3 Outputs</h2>
+          </div>
+          <div id="outputs" class="list-state">Loading</div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const el = (id) => document.getElementById(id);
+      let currentSource = "aws";
+      let activeVariantIndex = -1;
+      let activeVariants = [];
+      const apiBaseUrl = (window.VARIANT_DASHBOARD_API_BASE_URL || "").replace(/\/$/, "");
+
+      function apiUrl(path) {
+        return apiBaseUrl ? `${apiBaseUrl}${path}` : path;
+      }
+
+      function statusClass(status) {
+        const value = (status || "").toLowerCase();
+        if (value.includes("fail")) return "danger";
+        if (value.includes("run")) return "live";
+        if (value.includes("start")) return "warm";
+        if (value.includes("succeed")) return "good";
+        return "neutral";
+      }
+
+      function setPill(id, status) {
+        const node = el(id);
+        node.textContent = status || "Unknown";
+        node.className = `pill ${statusClass(status)}`;
+      }
+
+      function linkOrText(label, url) {
+        return url ? `<a href="${url}" target="_blank" rel="noreferrer">${label}</a>` : label;
+      }
+
+      function renderStages(stages) {
+        const root = el("stages");
+        root.innerHTML = stages.map((stage) => `
+          <article class="stage-card ${statusClass(stage.status)}">
+            <header>
+              <h3>${stage.stage}</h3>
+              <span class="pill ${statusClass(stage.status)}">${stage.status}</span>
+            </header>
+            <p><strong>Job:</strong> ${stage.job_id || "-"}</p>
+            <p><strong>Created:</strong> ${stage.created_at || "-"}</p>
+            <p><strong>Reason:</strong> ${stage.status_reason || "-"}</p>
+            <p><strong>Logs:</strong> ${stage.log_url ? `<a href="${stage.log_url}" target="_blank" rel="noreferrer">CloudWatch</a>` : "Local files only"}</p>
+            <p><strong>Artifacts:</strong> ${stage.artifact_prefix ? linkOrText(stage.artifact_prefix.prefix, stage.artifact_prefix.url) : "-"}</p>
+            <div class="artifact-list">
+              ${(stage.artifacts || []).length
+                ? stage.artifacts.map((artifact) => `
+                    <div class="artifact-row">
+                      ${artifact.url
+                        ? `<a href="${artifact.url}" target="_blank" rel="noreferrer">${artifact.key}</a>`
+                        : `<span>${artifact.key}</span>`}
+                      <small>${artifact.last_modified || "-"}</small>
+                    </div>
+                  `).join("")
+                : `<small>No recent artifacts yet.</small>`}
+            </div>
+          </article>
+        `).join("");
+      }
+
+      function formatBp(value) {
+        const numeric = Number(value || 0);
+        if (numeric >= 1000000) return `${(numeric / 1000000).toFixed(1)} Mb`;
+        if (numeric >= 1000) return `${(numeric / 1000).toFixed(1)} kb`;
+        return `${numeric} bp`;
+      }
+
+      function variantLabel(variant) {
+        return `${variant.chrom}:${variant.pos} ${variant.ref}->${variant.alt}`;
+      }
+
+      function renderVariantDetail(variant) {
+        const root = el("variant-detail");
+        if (!variant) {
+          root.innerHTML = `
+            <strong>No SNP selected yet.</strong>
+            <span>Click a marker on the chr21 track or a row in the table.</span>
+          `;
+          return;
+        }
+        root.innerHTML = `
+          <strong>${variantLabel(variant)}</strong>
+          <span>Quality: ${variant.qual || "-"}</span>
+          <span>Filter: ${variant.filter || "-"}</span>
+          <span>Genotype: ${variant.genotype || "-"}</span>
+        `;
+      }
+
+      function selectVariant(index) {
+        activeVariantIndex = index;
+        const selected = activeVariants[index] || null;
+        renderVariantDetail(selected);
+
+        document.querySelectorAll(".variant-marker").forEach((node, markerIndex) => {
+          node.classList.toggle("selected", markerIndex === index);
+        });
+        document.querySelectorAll(".variant-table tbody tr").forEach((node, rowIndex) => {
+          node.classList.toggle("selected", rowIndex === index);
+        });
+      }
+
+      function renderVariants(variantData) {
+        const variants = variantData?.variants || [];
+        activeVariants = variants;
+        activeVariantIndex = variants.length ? 0 : -1;
+
+        el("variant-count").textContent = `${variantData?.variant_count || 0} chr21 SNPs`;
+        el("variant-source").textContent =
+          variantData?.displayed_variant_count && variantData.displayed_variant_count !== variantData.variant_count
+            ? `Showing ${variantData.displayed_variant_count} of ${variantData.variant_count} SNPs from ${variantData.source_label || "results"}.`
+            : `Showing latest SNP calls from ${variantData?.source_label || "results"}.`;
+        el("variant-artifact").innerHTML = variantData?.artifact_url
+          ? `<a href="${variantData.artifact_url}" target="_blank" rel="noreferrer">${variantData.artifact_uri || "Open VCF artifact"}</a>`
+          : (variantData?.artifact_uri || "No VCF artifact located yet.");
+        el("variant-track-label").textContent = variantData?.chromosome || "chr21";
+        el("variant-track-range").textContent = `0 bp - ${formatBp(variantData?.chromosome_length_bp || 0)}`;
+
+        const track = el("variant-track");
+        if (!variants.length) {
+          track.innerHTML = `<div class="variant-track-empty">No chr21 SNPs available yet.</div>`;
+          el("variant-table-body").innerHTML = `<tr><td colspan="6">No chr21 SNPs available yet.</td></tr>`;
+          renderVariantDetail(null);
+          return;
+        }
+
+        const chromosomeLength = Number(variantData.chromosome_length_bp || 1);
+        track.innerHTML = `
+          <div class="chromosome-strip"></div>
+          ${variants.map((variant, index) => {
+            const left = Math.min(100, Math.max(0, (variant.pos / chromosomeLength) * 100));
+            return `
+              <button
+                type="button"
+                class="variant-marker ${index === activeVariantIndex ? "selected" : ""}"
+                style="left: ${left}%"
+                data-index="${index}"
+                title="${variantLabel(variant)}"
+                aria-label="${variantLabel(variant)}">
+              </button>
+            `;
+          }).join("")}
+        `;
+        track.querySelectorAll(".variant-marker").forEach((node) => {
+          node.addEventListener("click", () => selectVariant(Number(node.dataset.index)));
+        });
+
+        el("variant-table-body").innerHTML = variants.map((variant, index) => `
+          <tr class="${index === activeVariantIndex ? "selected" : ""}" data-index="${index}">
+            <td>${variant.pos}</td>
+            <td>${variant.ref}</td>
+            <td>${variant.alt}</td>
+            <td>${variant.qual || "-"}</td>
+            <td>${variant.filter || "-"}</td>
+            <td>${variant.genotype || "-"}</td>
+          </tr>
+        `).join("");
+        el("variant-table-body").querySelectorAll("tr").forEach((node) => {
+          node.addEventListener("click", () => selectVariant(Number(node.dataset.index)));
+        });
+
+        renderVariantDetail(variants[activeVariantIndex] || null);
+      }
+
+      function renderLatestRun(run) {
+        const root = el("latest-run");
+        if (!run || !run.created_at) {
+          root.textContent = "No submitted runs yet.";
+          return;
+        }
+        root.innerHTML = `
+          <div class="list-row">
+            <strong>Status: ${run.overall_status}</strong>
+            <span>Created: ${run.created_at}</span>
+            <small>Updated: ${run.updated_at || "-"}</small>
+          </div>
+        `;
+      }
+
+      function renderRunHistory(runs) {
+        renderList(
+          "run-history",
+          runs,
+          "No prior runs recorded yet.",
+          (run) => `
+            <div class="list-row">
+              <strong>${run.run_label} | ${run.overall_status}</strong>
+              <span>Created: ${run.created_at || "-"}</span>
+              <small>${(run.stages || []).map((stage) => `${stage.stage}:${stage.status}`).join(" | ")}</small>
+            </div>
+          `
+        );
+      }
+
+      function renderList(id, rows, emptyText, renderer) {
+        const root = el(id);
+        if (!rows.length) {
+          root.textContent = emptyText;
+          return;
+        }
+        root.innerHTML = rows.map(renderer).join("");
+      }
+
+      function syncSourceOptions(availableSources) {
+        const select = el("source-select");
+        const sources = availableSources?.length ? availableSources : ["aws"];
+        const labels = { aws: "AWS", local: "Local", hybrid: "Hybrid" };
+        const currentOptions = Array.from(select.options).map((option) => option.value);
+        if (JSON.stringify(currentOptions) === JSON.stringify(sources)) {
+          return;
+        }
+        select.innerHTML = sources
+          .map((source) => `<option value="${source}">${labels[source] || source}</option>`)
+          .join("");
+      }
+
+      async function loadStatus() {
+        const response = await fetch(apiUrl(`/api/status?source=${encodeURIComponent(currentSource)}`));
+        const data = await response.json();
+
+        setPill("overall-status", data.pipeline.overall_status);
+        setPill("queue-status", data.queue.status);
+        setPill("compute-status", data.compute_environment.status);
+
+        syncSourceOptions(data.available_sources);
+        el("source-select").value = data.source_mode || currentSource;
+        el("source-note").textContent = data.source_note || "";
+        el("region").textContent = data.region;
+        el("bucket").textContent = data.bucket;
+        el("latest-run-window").textContent = data.pipeline.latest_run.created_at || "-";
+        el("updated").textContent = data.last_updated;
+        el("queue-name").textContent = data.queue.name;
+        el("queue-state").textContent = data.queue.state;
+        el("queue-reason").textContent = data.queue.status_reason || "-";
+        el("compute-name").textContent = data.compute_environment.name;
+        el("compute-vcpus").textContent = `${data.compute_environment.desired_vcpus} / ${data.compute_environment.max_vcpus}`;
+        el("compute-instance-types").textContent = data.compute_environment.instance_types.join(", ") || "-";
+
+        renderStages(data.pipeline.stages);
+        renderLatestRun(data.pipeline.latest_run);
+        renderRunHistory(data.pipeline.run_history);
+        renderVariants(data.variants);
+        renderList(
+          "failures",
+          data.pipeline.recent_failures,
+          "No recent failed stage jobs.",
+          (item) => `<div class="list-row"><strong>${item.job_name}</strong><span>${item.status_reason || "-"}</span><small>${item.created_at || "-"}</small></div>`
+        );
+        renderList(
+          "outputs",
+          data.outputs,
+          "No output objects found yet.",
+          (item) => `<div class="list-row"><strong>${linkOrText(item.prefix, item.latest_url)}</strong><span>${item.object_count} objects</span><small>${item.latest_key || "-"}</small></div>`
+        );
+      }
+
+      el("source-select").addEventListener("change", (event) => {
+        currentSource = event.target.value;
+        loadStatus();
+      });
+
+      loadStatus();
+      setInterval(loadStatus, 15000);
+    </script>
+  </body>
+</html>
