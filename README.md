@@ -155,13 +155,19 @@ AWS-first proof of concept with Free Tier-aware downsizing:
 - [x] AWS Batch infrastructure reconciled in `us-east-2`
 - [x] pipeline resource requests reduced to Free-Tier-compatible sizing
 - [x] non-Fusion AWS Batch execution path prototyped
-- [x] dashboard MVP scaffolded for Batch/S3 monitoring
-- [ ] complete the next end-to-end AWS Batch run
-- [ ] (Stretch) annotate VCF and wire results into an Athena/dashboard view like the BioAPI project
+- [x] end-to-end AWS Batch chr21 run completed with results published to S3
+- [x] dashboard deployed to AWS with Batch/S3 monitoring
+- [x] chr21 SNP view added to the dashboard from the latest VCF
+- [x] latest smoke result produced `6` chr21 SNP calls in `test_R.vcf.gz`
+- [ ] (Stretch) add deeper annotation/filter semantics to the chr21 SNP dashboard view
 
-## Dashboard MVP
+## Dashboard
 
-A first monitoring dashboard is scaffolded under `dashboard/`.
+The dashboard now has both a local development mode and a live AWS-hosted mode.
+
+Hosted dashboard:
+
+- CloudFront URL: [https://d59eatnvgx6ld.cloudfront.net](https://d59eatnvgx6ld.cloudfront.net)
 
 It is designed as an AWS-first read-only monitor that aggregates:
 
@@ -170,6 +176,8 @@ It is designed as an AWS-first read-only monitor that aggregates:
 - latest per-stage pipeline job status
 - recent failed jobs
 - recent S3 output prefixes
+- latest chr21 VCF-derived SNP count and SNP table
+- chr21 SNP position map with clickable markers and selection detail
 
 To run locally after installing dependencies:
 
@@ -178,5 +186,13 @@ cd dashboard
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app:app --host 127.0.0.1 --port 8765 --reload
+./.venv/bin/python -m uvicorn app:app --host 127.0.0.1 --port 8767
 ```
+
+Local URL:
+
+- [http://127.0.0.1:8767](http://127.0.0.1:8767)
+
+The current dashboard includes a `Chr21 Variant Map` section that reads the
+latest `results/vcf/*.vcf.gz` artifact, plots SNP positions across chr21, and
+shows the selected SNP's `POS`, `REF`, `ALT`, `QUAL`, `FILTER`, and genotype.
