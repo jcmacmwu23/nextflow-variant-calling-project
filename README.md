@@ -189,10 +189,6 @@ pip install -r requirements.txt
 ./.venv/bin/python -m uvicorn app:app --host 127.0.0.1 --port 8767
 ```
 
-Local URL:
-
-- [http://127.0.0.1:8767](http://127.0.0.1:8767)
-
 The current dashboard includes a `Chr21 Variant Map` section that reads the
 latest `results/vcf/*.vcf.gz` artifact, plots SNP positions across chr21, and
 shows the selected SNP's `POS`, `REF`, `ALT`, `QUAL`, `FILTER`, and genotype.
