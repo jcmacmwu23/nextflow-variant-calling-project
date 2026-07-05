@@ -92,12 +92,20 @@
           </div>
           <div class="variant-legend" aria-label="Chr21 variant map legend">
             <span class="variant-legend-item">
-              <span class="variant-legend-swatch"></span>
-              SNP marker
+              <span class="variant-legend-swatch het-pass"></span>
+              PASS heterozygous
+            </span>
+            <span class="variant-legend-item">
+              <span class="variant-legend-swatch hom-alt"></span>
+              PASS homozygous alt
+            </span>
+            <span class="variant-legend-item">
+              <span class="variant-legend-swatch filtered"></span>
+              Filtered / non-PASS
             </span>
             <span class="variant-legend-item">
               <span class="variant-legend-swatch selected"></span>
-              Selected SNP
+              Selected outline
             </span>
           </div>
           <div id="variant-track" class="variant-track">
@@ -226,6 +234,10 @@
         return `${variant.chrom}:${variant.pos} ${variant.ref}->${variant.alt}`;
       }
 
+      function variantMarkerClass(variant) {
+        return variant?.marker_class || "pass-other";
+      }
+
       function renderVariantDetail(variant) {
         const root = el("variant-detail");
         if (!variant) {
@@ -237,6 +249,7 @@
         }
         root.innerHTML = `
           <strong>${variantLabel(variant)}</strong>
+          <span>Meaning: ${variant.meaning || "-"}</span>
           <span>Quality: ${variant.qual || "-"}</span>
           <span>Filter: ${variant.filter || "-"}</span>
           <span>Genotype: ${variant.genotype || "-"}</span>
@@ -288,7 +301,7 @@
             return `
               <button
                 type="button"
-                class="variant-marker ${index === activeVariantIndex ? "selected" : ""}"
+                class="variant-marker ${variantMarkerClass(variant)} ${index === activeVariantIndex ? "selected" : ""}"
                 style="left: ${left}%"
                 data-index="${index}"
                 title="${variantLabel(variant)}"
@@ -302,7 +315,7 @@
         });
 
         el("variant-table-body").innerHTML = variants.map((variant, index) => `
-          <tr class="${index === activeVariantIndex ? "selected" : ""}" data-index="${index}">
+          <tr class="${variantMarkerClass(variant)} ${index === activeVariantIndex ? "selected" : ""}" data-index="${index}">
             <td>${variant.pos}</td>
             <td>${variant.ref}</td>
             <td>${variant.alt}</td>

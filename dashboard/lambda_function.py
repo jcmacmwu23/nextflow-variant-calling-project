@@ -46,6 +46,38 @@ CHR21_LENGTH_BP = 46709983
 MAX_VARIANTS = 200
 
 
+def infer_variant_annotation(filter_value: str | None, genotype: str | None) -> dict[str, str]:
+    normalized_filter = (filter_value or ".").upper()
+    normalized_gt = genotype or "./."
+
+    if normalized_filter not in {"PASS", "."}:
+        return {
+            "marker_class": "filtered",
+            "meaning": "Filtered or low-confidence call",
+            "zygosity": "filtered",
+        }
+
+    if normalized_gt in {"1/1", "1|1"}:
+        return {
+            "marker_class": "hom-alt",
+            "meaning": "PASS homozygous alternate call",
+            "zygosity": "homozygous_alt",
+        }
+
+    if normalized_gt in {"0/1", "1/0", "0|1", "1|0"}:
+        return {
+            "marker_class": "het-pass",
+            "meaning": "PASS heterozygous call",
+            "zygosity": "heterozygous",
+        }
+
+    return {
+        "marker_class": "pass-other",
+        "meaning": "PASS call with other or missing genotype encoding",
+        "zygosity": "other",
+    }
+
+
 def aws_client(service: str):
     return boto3.client(
         service,
@@ -153,6 +185,7 @@ def parse_vcf_text(lines: list[str], bucket: str, artifact_key: str | None) -> d
         except ValueError:
             continue
 
+        annotation = infer_variant_annotation(filt, genotype)
         variants.append(
             {
                 "chrom": chrom,
@@ -164,6 +197,7 @@ def parse_vcf_text(lines: list[str], bucket: str, artifact_key: str | None) -> d
                 "filter": filt,
                 "info": info,
                 "genotype": genotype,
+                **annotation,
             }
         )
 

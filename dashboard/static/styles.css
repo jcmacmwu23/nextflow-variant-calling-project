@@ -330,14 +330,39 @@ a:hover {
   width: 0.7rem;
   height: 1.15rem;
   border-radius: 999px;
-  border: 1px solid rgba(13, 107, 89, 0.45);
-  background: linear-gradient(180deg, #2d8a43 0%, #0d6b59 100%);
+  border: 1px solid rgba(92, 83, 72, 0.4);
+  background: linear-gradient(180deg, #9f8f80 0%, #6e6258 100%);
   box-shadow: 0 0 0 1px rgba(255, 250, 242, 0.9);
 }
 
-.variant-legend-swatch.selected {
-  background: linear-gradient(180deg, #c57a19 0%, #c7512b 100%);
+.variant-legend-swatch.het-pass,
+.variant-marker.het-pass {
+  border-color: rgba(13, 107, 89, 0.45);
+  background: linear-gradient(180deg, #2d8a43 0%, #0d6b59 100%);
+}
+
+.variant-legend-swatch.hom-alt,
+.variant-marker.hom-alt {
+  border-color: rgba(164, 108, 24, 0.55);
+  background: linear-gradient(180deg, #d49a3a 0%, #8b5e1a 100%);
+}
+
+.variant-legend-swatch.filtered,
+.variant-marker.filtered {
   border-color: rgba(199, 81, 43, 0.8);
+  background: linear-gradient(180deg, #e88d6d 0%, #c7512b 100%);
+}
+
+.variant-legend-swatch.pass-other,
+.variant-marker.pass-other {
+  border-color: rgba(92, 83, 72, 0.45);
+  background: linear-gradient(180deg, #b1a497 0%, #6e6258 100%);
+}
+
+.variant-legend-swatch.selected {
+  box-shadow:
+    0 0 0 2px rgba(255, 250, 242, 0.95),
+    0 0 0 4px rgba(199, 81, 43, 0.45);
 }
 
 .variant-track {
@@ -391,16 +416,18 @@ a:hover {
   height: 2.1rem;
   transform: translateX(-50%);
   border-radius: 999px;
-  border: 1px solid rgba(13, 107, 89, 0.45);
-  background: linear-gradient(180deg, #2d8a43 0%, #0d6b59 100%);
   box-shadow: 0 0 0 1px rgba(255, 250, 242, 0.9);
   cursor: pointer;
 }
 
-.variant-marker:hover,
 .variant-marker.selected {
-  background: linear-gradient(180deg, #c57a19 0%, #c7512b 100%);
-  border-color: rgba(199, 81, 43, 0.8);
+  box-shadow:
+    0 0 0 2px rgba(255, 250, 242, 0.95),
+    0 0 0 4px rgba(199, 81, 43, 0.45);
+}
+
+.variant-marker:hover {
+  transform: translateX(-50%) scaleY(1.06);
 }
 
 .variant-table-wrap {
@@ -436,6 +463,23 @@ a:hover {
 .variant-table tbody tr:hover,
 .variant-table tbody tr.selected {
   background: #f3fbf4;
+}
+
+.variant-table tbody tr.filtered {
+  background: #fff4ef;
+}
+
+.variant-table tbody tr.hom-alt {
+  background: #fff8ea;
+}
+
+.variant-table tbody tr.pass-other {
+  background: #f5f0ea;
+}
+
+.variant-table tbody tr.selected {
+  outline: 2px solid rgba(199, 81, 43, 0.35);
+  outline-offset: -2px;
 }
 
 @media (max-width: 720px) {

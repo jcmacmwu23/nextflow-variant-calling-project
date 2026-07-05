@@ -36,6 +36,24 @@ AWS Batch (Free-Tier-compatible EC2 compute environment in us-east-2)
 S3 (results/{fastqc,trimmed,aligned,dedup,vcf}/)
 ```
 
+```mermaid
+flowchart LR
+    A["S3 raw FASTQ<br/>chr21 test reads"] --> B["Nextflow DSL2"]
+    R["S3 reference<br/>chr21.fa"] --> B
+    B --> C["AWS Batch<br/>FASTQC"]
+    B --> D["AWS Batch<br/>TRIM_GALORE"]
+    D --> E["AWS Batch<br/>BWA_MEM"]
+    E --> F["AWS Batch<br/>SORT_DEDUP"]
+    F --> G["AWS Batch<br/>HAPLOTYPE_CALLER"]
+    C --> H["S3 results/fastqc"]
+    D --> I["S3 results/trimmed"]
+    E --> J["S3 results/aligned"]
+    F --> K["S3 results/dedup"]
+    G --> L["S3 results/vcf"]
+    L --> M["Dashboard API"]
+    M --> N["CloudFront dashboard<br/>Chr21 Variant Map"]
+```
+
 ## Tech stack
 
 | Layer | Technology |
@@ -57,6 +75,24 @@ To keep the pipeline deployable in an AWS Free Tier-constrained account:
 
 This preserves the AWS Batch + Nextflow architecture while making the project
 practical to run in a low-cost account.
+
+## Engineering tradeoffs for AWS Free Tier
+
+This project intentionally documents engineering tradeoffs instead of pretending
+ a production genomics workload can run unchanged on Free Tier resources.
+
+- **Smaller biological scope:** the demo is limited to a chr21 test fixture
+  instead of whole-genome variant calling.
+- **Reduced compute sizing:** each process is tuned to fit small
+  Free-Tier-compatible EC2 instances rather than high-memory production nodes.
+- **AWS-first, but not AWS-only:** the same workflow is proven locally for fast
+  debugging and in AWS Batch for cloud orchestration credibility.
+- **Operational realism over scale realism:** the project emphasizes IAM, S3,
+  Batch queues, publish paths, and dashboard visibility more than raw
+  throughput.
+- **Low-cost validation strategy:** a lightweight dataset keeps storage and
+  runtime practical while still producing a real `VCF` and a dashboard-visible
+  SNP result.
 
 ## v1 scope (kept deliberately small to control AWS cost)
 
@@ -192,3 +228,30 @@ pip install -r requirements.txt
 The current dashboard includes a `Chr21 Variant Map` section that reads the
 latest `results/vcf/*.vcf.gz` artifact, plots SNP positions across chr21, and
 shows the selected SNP's `POS`, `REF`, `ALT`, `QUAL`, `FILTER`, and genotype.
+
+The chr21 SNP colors now carry lightweight biological meaning:
+
+- green: `PASS` heterozygous call
+- amber: `PASS` homozygous alternate call
+- red: filtered or non-`PASS` call
+- outlined marker: currently selected SNP
+
+## Lightweight test strategy
+
+This repo does not yet include a full nf-test or CI test suite, but it does use
+a small, practical assertion strategy suitable for a portfolio project:
+
+- run the workflow against the chr21 fixture locally with `-profile local`
+- verify that each stage publishes expected outputs under `results/`
+- verify that the final `VCF` exists and contains at least one non-header call
+- verify that the dashboard can read the latest `VCF` and expose SNP metadata
+
+A tiny shell assertion helper is included:
+
+```bash
+./bin/assert_chr21_outputs.sh
+```
+
+It checks for the expected result directories, confirms the final
+`results/vcf/*.vcf.gz` artifact exists, and asserts that it contains at least
+one variant row.
