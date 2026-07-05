@@ -4,165 +4,239 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Variant Pipeline Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    >
     <link rel="stylesheet" href="/static/styles.css">
     <script src="/static/config.js"></script>
   </head>
   <body>
-    <main class="shell">
-      <section class="hero">
-        <p class="eyebrow">AWS-first monitoring</p>
-        <h1>Variant Pipeline Dashboard</h1>
-        <p class="lede">Live Batch, S3, and pipeline-stage status for the chr21 proof-of-concept deployment in Ohio.</p>
-        <div class="source-bar">
-          <label for="source-select">Execution Source</label>
-          <select id="source-select"></select>
-          <p id="source-note" class="source-note">Loading source details...</p>
-        </div>
-      </section>
-
-      <section class="grid top-grid">
-        <article class="panel">
-          <div class="panel-head">
-            <h2>Overview</h2>
-            <span id="overall-status" class="pill">Loading</span>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Variant Calling Operations</p>
+          <h1>AWS-first chr21 variant pipeline dashboard.</h1>
+          <p class="hero-text">
+            A reviewer-friendly view of the Ohio deployment: AWS Batch health,
+            run progression, S3 outputs, and the latest chr21 SNP calls from the
+            Nextflow proof of concept.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#overview">Open Overview</a>
+            <a class="button button-secondary" href="#variants">Chr21 Map</a>
+            <a class="button button-secondary" href="#runs">Run History</a>
           </div>
-          <dl class="meta">
-            <div><dt>Region</dt><dd id="region">-</dd></div>
-            <div><dt>Bucket</dt><dd id="bucket">-</dd></div>
-            <div><dt>Latest Run</dt><dd id="latest-run-window">-</dd></div>
-            <div><dt>Updated</dt><dd id="updated">-</dd></div>
-          </dl>
-        </article>
-
-        <article class="panel">
-          <div class="panel-head">
-            <h2>Batch Queue</h2>
-            <span id="queue-status" class="pill">Loading</span>
-          </div>
-          <dl class="meta">
-            <div><dt>Name</dt><dd id="queue-name">-</dd></div>
-            <div><dt>State</dt><dd id="queue-state">-</dd></div>
-            <div><dt>Reason</dt><dd id="queue-reason">-</dd></div>
-          </dl>
-        </article>
-
-        <article class="panel">
-          <div class="panel-head">
-            <h2>Compute</h2>
-            <span id="compute-status" class="pill">Loading</span>
-          </div>
-          <dl class="meta">
-            <div><dt>Name</dt><dd id="compute-name">-</dd></div>
-            <div><dt>Desired vCPUs</dt><dd id="compute-vcpus">-</dd></div>
-            <div><dt>Instances</dt><dd id="compute-instance-types">-</dd></div>
-          </dl>
-        </article>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Pipeline Stages</h2>
         </div>
-        <div id="stages" class="stages"></div>
-      </section>
+        <aside class="hero-panel">
+          <div class="hero-panel-grid">
+            <article class="metric-card">
+              <span class="metric-label">Pipeline Status</span>
+              <strong id="overall-status">Loading</strong>
+              <span class="metric-detail">Latest workflow state across monitored stages</span>
+            </article>
+            <article class="metric-card">
+              <span class="metric-label">Batch Queue</span>
+              <strong id="queue-status">Loading</strong>
+              <span class="metric-detail"><span id="queue-name">-</span> • <span id="queue-state">-</span></span>
+            </article>
+            <article class="metric-card">
+              <span class="metric-label">Compute</span>
+              <strong id="compute-status">Loading</strong>
+              <span class="metric-detail"><span id="compute-vcpus">-</span> desired / max vCPUs</span>
+            </article>
+            <article class="metric-card source-card">
+              <span class="metric-label">Execution Source</span>
+              <div class="source-bar">
+                <label class="sr-only" for="source-select">Execution Source</label>
+                <select id="source-select"></select>
+              </div>
+              <span id="source-note" class="metric-detail">Loading source details...</span>
+            </article>
+          </div>
+        </aside>
+      </header>
 
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Chr21 Variant Map</h2>
-        </div>
-        <div class="variant-hero">
-          <article class="variant-summary">
-            <p class="variant-kicker">Latest VCF</p>
-            <h3 id="variant-count">Loading</h3>
-            <p id="variant-source" class="variant-note">Reading chr21 variant results...</p>
-            <p id="variant-artifact" class="variant-note">-</p>
-          </article>
-          <article class="variant-detail-card">
-            <p class="variant-kicker">Selected SNP</p>
-            <div id="variant-detail" class="variant-detail">
-              <strong>No SNP selected yet.</strong>
-              <span>Click a marker on the chr21 track or a row in the table.</span>
+      <main class="content">
+        <section class="panel" id="overview">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Overview</p>
+              <h2>Deployment snapshot and control-plane status</h2>
+            </div>
+            <p class="section-copy">
+              The main page leads with current operating posture first, then
+              drills down into stage execution, delivered outputs, and the
+              biological result surfaced from the latest chr21 VCF.
+            </p>
+          </div>
+
+          <div class="overview-grid">
+            <article class="card">
+              <h3>Environment snapshot</h3>
+              <dl class="stat-list">
+                <div><dt>Region</dt><dd id="region">-</dd></div>
+                <div><dt>S3 bucket</dt><dd id="bucket">-</dd></div>
+                <div><dt>Latest run</dt><dd id="latest-run-window">-</dd></div>
+                <div><dt>Updated</dt><dd id="updated">-</dd></div>
+              </dl>
+            </article>
+
+            <article class="card">
+              <h3>Batch queue posture</h3>
+              <dl class="stat-list">
+                <div><dt>Name</dt><dd id="queue-name-overview">-</dd></div>
+                <div><dt>State</dt><dd id="queue-state-overview">-</dd></div>
+                <div><dt>Reason</dt><dd id="queue-reason">-</dd></div>
+              </dl>
+            </article>
+
+            <article class="card">
+              <h3>Compute environment</h3>
+              <dl class="stat-list">
+                <div><dt>Name</dt><dd id="compute-name">-</dd></div>
+                <div><dt>Desired / max vCPUs</dt><dd id="compute-vcpus-overview">-</dd></div>
+                <div><dt>Instances</dt><dd id="compute-instance-types">-</dd></div>
+              </dl>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel" id="pipeline">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Pipeline</p>
+              <h2>Stage-by-stage workflow execution</h2>
+            </div>
+            <p class="section-copy">
+              Shows the current status of each Nextflow module, with CloudWatch
+              links and recent artifacts surfaced inline to make troubleshooting
+              and demo walkthroughs faster.
+            </p>
+          </div>
+          <div id="stages" class="stages"></div>
+        </section>
+
+        <section class="panel" id="variants">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Variants</p>
+              <h2>Chr21 SNP map and latest VCF calls</h2>
+            </div>
+            <p class="section-copy">
+              Keeps the biological result visible: the latest chr21 SNPs,
+              genotype-aware coloring, and per-call detail tied directly to the
+              current VCF artifact in S3.
+            </p>
+          </div>
+
+          <div class="variant-hero">
+            <article class="card variant-summary">
+              <p class="variant-kicker">Latest VCF</p>
+              <h3 id="variant-count">Loading</h3>
+              <p id="variant-source" class="variant-note">Reading chr21 variant results...</p>
+              <p id="variant-artifact" class="variant-note">-</p>
+            </article>
+            <article class="card variant-detail-card">
+              <p class="variant-kicker">Selected SNP</p>
+              <div id="variant-detail" class="variant-detail">
+                <strong>No SNP selected yet.</strong>
+                <span>Click a marker on the chr21 track or a row in the table.</span>
+              </div>
+            </article>
+          </div>
+
+          <article class="card variant-track-panel">
+            <div class="variant-track-head">
+              <strong id="variant-track-label">chr21</strong>
+              <span id="variant-track-range">0 bp - 46.7 Mb</span>
+            </div>
+            <div class="variant-legend" aria-label="Chr21 variant map legend">
+              <span class="variant-legend-item">
+                <span class="variant-legend-swatch het-pass"></span>
+                PASS heterozygous
+              </span>
+              <span class="variant-legend-item">
+                <span class="variant-legend-swatch hom-alt"></span>
+                PASS homozygous alt
+              </span>
+              <span class="variant-legend-item">
+                <span class="variant-legend-swatch filtered"></span>
+                Filtered / non-PASS
+              </span>
+              <span class="variant-legend-item">
+                <span class="variant-legend-swatch selected"></span>
+                Selected outline
+              </span>
+            </div>
+            <div id="variant-track" class="variant-track">
+              <div class="variant-track-empty">No chr21 SNPs available yet.</div>
             </div>
           </article>
-        </div>
-        <div class="variant-track-panel">
-          <div class="variant-track-head">
-            <strong id="variant-track-label">chr21</strong>
-            <span id="variant-track-range">0 bp - 46.7 Mb</span>
-          </div>
-          <div class="variant-legend" aria-label="Chr21 variant map legend">
-            <span class="variant-legend-item">
-              <span class="variant-legend-swatch het-pass"></span>
-              PASS heterozygous
-            </span>
-            <span class="variant-legend-item">
-              <span class="variant-legend-swatch hom-alt"></span>
-              PASS homozygous alt
-            </span>
-            <span class="variant-legend-item">
-              <span class="variant-legend-swatch filtered"></span>
-              Filtered / non-PASS
-            </span>
-            <span class="variant-legend-item">
-              <span class="variant-legend-swatch selected"></span>
-              Selected outline
-            </span>
-          </div>
-          <div id="variant-track" class="variant-track">
-            <div class="variant-track-empty">No chr21 SNPs available yet.</div>
-          </div>
-        </div>
-        <div class="variant-table-wrap">
-          <table class="variant-table">
-            <thead>
-              <tr>
-                <th>POS</th>
-                <th>REF</th>
-                <th>ALT</th>
-                <th>QUAL</th>
-                <th>FILTER</th>
-                <th>GT</th>
-              </tr>
-            </thead>
-            <tbody id="variant-table-body">
-              <tr><td colspan="6">Loading chr21 SNPs...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
 
-      <section class="grid bottom-grid">
-        <article class="panel">
-          <div class="panel-head">
-            <h2>Latest Run</h2>
-          </div>
-          <div id="latest-run" class="list-state">Loading</div>
-        </article>
+          <article class="card variant-table-card">
+            <h3>Latest SNP rows</h3>
+            <div class="table-scroll-frame variant-table-wrap">
+              <table class="data-table variant-table">
+                <thead>
+                  <tr>
+                    <th>POS</th>
+                    <th>REF</th>
+                    <th>ALT</th>
+                    <th>QUAL</th>
+                    <th>FILTER</th>
+                    <th>GT</th>
+                  </tr>
+                </thead>
+                <tbody id="variant-table-body">
+                  <tr><td colspan="6">Loading chr21 SNPs...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
 
-        <article class="panel">
-          <div class="panel-head">
-            <h2>Run History</h2>
+        <section class="panel" id="runs">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Runs</p>
+              <h2>Latest execution, history, and failure context</h2>
+            </div>
+            <p class="section-copy">
+              Groups the operational story into current run context, historical
+              attempts, recent failures, and S3 output visibility in the same
+              dashboard language as the other projects.
+            </p>
           </div>
-          <div id="run-history" class="list-state">Loading</div>
-        </article>
-      </section>
 
-      <section class="grid bottom-grid">
-        <article class="panel">
-          <div class="panel-head">
-            <h2>Recent Failures</h2>
-          </div>
-          <div id="failures" class="list-state">Loading</div>
-        </article>
+          <div class="analysis-grid">
+            <article class="card">
+              <h3>Latest run</h3>
+              <div id="latest-run" class="list-state">Loading</div>
+            </article>
 
-        <article class="panel">
-          <div class="panel-head">
-            <h2>S3 Outputs</h2>
+            <article class="card">
+              <h3>Run history</h3>
+              <div id="run-history" class="list-state">Loading</div>
+            </article>
           </div>
-          <div id="outputs" class="list-state">Loading</div>
-        </article>
-      </section>
-    </main>
+
+          <div class="analysis-grid secondary-grid">
+            <article class="card">
+              <h3>Recent failures</h3>
+              <div id="failures" class="list-state">Loading</div>
+            </article>
+
+            <article class="card">
+              <h3>S3 outputs</h3>
+              <div id="outputs" class="list-state">Loading</div>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
 
     <script>
       const el = (id) => document.getElementById(id);
@@ -184,10 +258,10 @@
         return "neutral";
       }
 
-      function setPill(id, status) {
+      function setStatusText(id, status) {
         const node = el(id);
         node.textContent = status || "Unknown";
-        node.className = `pill ${statusClass(status)}`;
+        node.className = `status-text ${statusClass(status)}`;
       }
 
       function linkOrText(label, url) {
@@ -198,15 +272,17 @@
         const root = el("stages");
         root.innerHTML = stages.map((stage) => `
           <article class="stage-card ${statusClass(stage.status)}">
-            <header>
+            <header class="card-header-inline">
               <h3>${stage.stage}</h3>
-              <span class="pill ${statusClass(stage.status)}">${stage.status}</span>
+              <span class="card-badge ${statusClass(stage.status)}">${stage.status}</span>
             </header>
-            <p><strong>Job:</strong> ${stage.job_id || "-"}</p>
-            <p><strong>Created:</strong> ${stage.created_at || "-"}</p>
-            <p><strong>Reason:</strong> ${stage.status_reason || "-"}</p>
-            <p><strong>Logs:</strong> ${stage.log_url ? `<a href="${stage.log_url}" target="_blank" rel="noreferrer">CloudWatch</a>` : "Local files only"}</p>
-            <p><strong>Artifacts:</strong> ${stage.artifact_prefix ? linkOrText(stage.artifact_prefix.prefix, stage.artifact_prefix.url) : "-"}</p>
+            <div class="stage-meta">
+              <p><strong>Job</strong><span>${stage.job_id || "-"}</span></p>
+              <p><strong>Created</strong><span>${stage.created_at || "-"}</span></p>
+              <p><strong>Reason</strong><span>${stage.status_reason || "-"}</span></p>
+              <p><strong>Logs</strong><span>${stage.log_url ? `<a href="${stage.log_url}" target="_blank" rel="noreferrer">CloudWatch</a>` : "Local files only"}</span></p>
+              <p><strong>Artifacts</strong><span>${stage.artifact_prefix ? linkOrText(stage.artifact_prefix.prefix, stage.artifact_prefix.url) : "-"}</span></p>
+            </div>
             <div class="artifact-list">
               ${(stage.artifacts || []).length
                 ? stage.artifacts.map((artifact) => `
@@ -387,9 +463,9 @@
         const response = await fetch(apiUrl(`/api/status?source=${encodeURIComponent(currentSource)}`));
         const data = await response.json();
 
-        setPill("overall-status", data.pipeline.overall_status);
-        setPill("queue-status", data.queue.status);
-        setPill("compute-status", data.compute_environment.status);
+        setStatusText("overall-status", data.pipeline.overall_status);
+        setStatusText("queue-status", data.queue.status);
+        setStatusText("compute-status", data.compute_environment.status);
 
         syncSourceOptions(data.available_sources);
         el("source-select").value = data.source_mode || currentSource;
@@ -400,9 +476,12 @@
         el("updated").textContent = data.last_updated;
         el("queue-name").textContent = data.queue.name;
         el("queue-state").textContent = data.queue.state;
+        el("queue-name-overview").textContent = data.queue.name;
+        el("queue-state-overview").textContent = data.queue.state;
         el("queue-reason").textContent = data.queue.status_reason || "-";
         el("compute-name").textContent = data.compute_environment.name;
         el("compute-vcpus").textContent = `${data.compute_environment.desired_vcpus} / ${data.compute_environment.max_vcpus}`;
+        el("compute-vcpus-overview").textContent = `${data.compute_environment.desired_vcpus} / ${data.compute_environment.max_vcpus}`;
         el("compute-instance-types").textContent = data.compute_environment.instance_types.join(", ") || "-";
 
         renderStages(data.pipeline.stages);
