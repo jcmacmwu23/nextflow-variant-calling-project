@@ -571,6 +571,7 @@ resource "aws_s3_object" "dashboard_site_index" {
   source       = "${local.dashboard_static_dir}/index.html"
   etag         = filemd5("${local.dashboard_static_dir}/index.html")
   content_type = "text/html"
+  cache_control = "no-cache, no-store, must-revalidate"
 }
 
 resource "aws_s3_object" "dashboard_site_static_files" {
@@ -580,6 +581,7 @@ resource "aws_s3_object" "dashboard_site_static_files" {
   key    = "static/${each.value}"
   source = "${local.dashboard_static_dir}/${each.value}"
   etag   = filemd5("${local.dashboard_static_dir}/${each.value}")
+  cache_control = "no-cache, no-store, must-revalidate"
   content_type = lookup(
     local.dashboard_content_types,
     reverse(split(".", each.value))[0],
@@ -592,6 +594,7 @@ resource "aws_s3_object" "dashboard_site_config" {
   key          = "static/config.js"
   content      = "window.VARIANT_DASHBOARD_API_BASE_URL = '${aws_apigatewayv2_api.dashboard_api.api_endpoint}';\n"
   content_type = "application/javascript"
+  cache_control = "no-cache, no-store, must-revalidate"
   etag         = md5("window.VARIANT_DASHBOARD_API_BASE_URL = '${aws_apigatewayv2_api.dashboard_api.api_endpoint}';\n")
 }
 
